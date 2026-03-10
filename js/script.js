@@ -11,30 +11,40 @@ let chart;
 
 // ================= INTRO CONTROLLER =================
 window.addEventListener("load", () => {
+
   setTimeout(() => {
+
     document.getElementById("intro").style.display = "none";
     document.getElementById("mainApp").style.display = "block";
+
     initMap();
+
   }, 3500);
+
 });
+
 
 // ================= AQI STATUS =================
 function getAQIStatus(aqi) {
+
   if (aqi <= 50) return "Good 😊";
   if (aqi <= 100) return "Moderate 😐";
   if (aqi <= 150) return "Unhealthy 😷";
   if (aqi <= 200) return "Very Unhealthy 🤒";
   return "Hazardous ☠️";
+
 }
+
 
 // ================= INIT MAP =================
 function initMap() {
 
   map = L.map("map").setView([22.9734, 78.6569], 5);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors"
-  }).addTo(map);
+  L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { attribution: "© OpenStreetMap contributors" }
+  ).addTo(map);
 
   setTimeout(() => map.invalidateSize(), 300);
 
@@ -63,6 +73,7 @@ function initMap() {
 
 }
 
+
 // ================= LOAD AQI =================
 async function loadAQI(lat, lon, cityName = "Unknown") {
 
@@ -73,6 +84,7 @@ async function loadAQI(lat, lon, cityName = "Unknown") {
     );
 
     const aqiData = await aqiRes.json();
+
     const aqi = aqiData.list[0].main.aqi * 50;
 
     document.getElementById("city-name").innerText = cityName;
@@ -94,9 +106,13 @@ async function loadAQI(lat, lon, cityName = "Unknown") {
     showCityHeatmap(map, lat, lon, aqi);
 
     saveHistory(cityName, aqi);
+
     analyzeTrend();
+
     generateDailyReport(cityName, aqi);
+
     loadWeather(lat, lon);
+
     updateChart();
 
   } catch (err) {
@@ -107,6 +123,7 @@ async function loadAQI(lat, lon, cityName = "Unknown") {
   }
 
 }
+
 
 // ================= WEATHER =================
 async function loadWeather(lat, lon) {
@@ -133,6 +150,7 @@ async function loadWeather(lat, lon) {
 
 }
 
+
 // ================= SAVE HISTORY =================
 function saveHistory(city, aqi) {
 
@@ -149,6 +167,7 @@ function saveHistory(city, aqi) {
   localStorage.setItem("aqiHistory", JSON.stringify(history));
 
 }
+
 
 // ================= TREND ANALYSIS =================
 function analyzeTrend() {
@@ -169,6 +188,7 @@ function analyzeTrend() {
 
 }
 
+
 // ================= DAILY REPORT =================
 function generateDailyReport(city, aqi) {
 
@@ -180,6 +200,7 @@ function generateDailyReport(city, aqi) {
   `;
 
 }
+
 
 // ================= AQI CHART =================
 function updateChart() {
@@ -194,7 +215,9 @@ function updateChart() {
   if (chart) chart.destroy();
 
   chart = new Chart(ctx, {
+
     type: "line",
+
     data: {
       labels: labels,
       datasets: [{
@@ -202,9 +225,11 @@ function updateChart() {
         data: values
       }]
     }
+
   });
 
 }
+
 
 // ================= CURRENT LOCATION =================
 document.getElementById("locBtn").addEventListener("click", () => {
@@ -221,16 +246,21 @@ document.getElementById("locBtn").addEventListener("click", () => {
 
 });
 
+
 // ================= SEARCH CITY =================
 document.getElementById("searchBtn").addEventListener("click", searchCity);
 
 document.getElementById("cityInput").addEventListener("keypress", e => {
+
   if (e.key === "Enter") searchCity();
+
 });
+
 
 async function searchCity() {
 
   const city = document.getElementById("cityInput").value.trim();
+
   if (!city) return alert("Enter city name");
 
   const res = await fetch(
@@ -245,15 +275,27 @@ async function searchCity() {
 
 }
 
+
 // ================= LEGEND =================
 function highlightLegend(aqi) {
 
-  const levels = ["good","moderate","unhealthy","very-unhealthy","hazardous"];
+  const levels = [
+    "good",
+    "moderate",
+    "unhealthy",
+    "very-unhealthy",
+    "hazardous"
+  ];
 
   levels.forEach(level => {
+
     const el = document.querySelector(`.legend-color.${level}`);
+
+    if (!el) return;
+
     el.style.border = "1px solid #ccc";
     el.style.boxShadow = "none";
+
   });
 
   let active = "hazardous";
@@ -265,10 +307,15 @@ function highlightLegend(aqi) {
 
   const el = document.querySelector(`.legend-color.${active}`);
 
-  el.style.border = "3px solid black";
-  el.style.boxShadow = "0 0 12px rgba(0,0,0,0.6)";
+  if (el) {
+
+    el.style.border = "3px solid black";
+    el.style.boxShadow = "0 0 12px rgba(0,0,0,0.6)";
+
+  }
 
 }
+
 
 // ================= AUTO REFRESH =================
 setInterval(() => {
@@ -278,12 +325,16 @@ setInterval(() => {
   const lat = marker.getLatLng().lat;
   const lon = marker.getLatLng().lng;
 
-  loadAQI(lat, lon, document.getElementById("city-name").innerText);
+  loadAQI(
+    lat,
+    lon,
+    document.getElementById("city-name").innerText
+  );
 
 }, 300000);
 
-// ================= SIDEBAR MENU =================
 
+// ================= SIDEBAR MENU =================
 const sideMenu = document.getElementById("sideMenu");
 
 document.getElementById("menuBtn").onclick = () => {
@@ -294,10 +345,12 @@ document.getElementById("closeMenu").onclick = () => {
   sideMenu.style.left = "-280px";
 };
 
+
 // ================= HISTORY PANEL =================
 document.getElementById("menuHistory").onclick = () => {
 
   const container = document.getElementById("historyContainer");
+
   let history = JSON.parse(localStorage.getItem("aqiHistory")) || [];
 
   container.innerHTML = "<h3>AQI Search History</h3>";
@@ -305,24 +358,32 @@ document.getElementById("menuHistory").onclick = () => {
   history.reverse().forEach(h => {
 
     container.innerHTML += `
-    <div class="history-item">
-      <b>${h.city}</b><br>
-      AQI : ${h.aqi}<br>
-      <small>${h.time}</small>
-    </div>
+      <div class="history-item">
+        <b>${h.city}</b><br>
+        AQI : ${h.aqi}<br>
+        <small>${h.time}</small>
+      </div>
     `;
 
   });
 
-  container.scrollIntoView({behavior:"smooth"});
+  container.scrollIntoView({ behavior: "smooth" });
+
   sideMenu.style.left = "-280px";
 
 };
 
+
 // ================= CAPITAL AQI =================
+let capitalsLoaded = false;
+
 document.getElementById("menuCapitals").onclick = loadCapitalAQI;
 
 async function loadCapitalAQI() {
+
+  if (capitalsLoaded) return;
+
+  capitalsLoaded = true;
 
   const capitals = [
     "Delhi","Mumbai","Kolkata","Chennai","Bangalore",
@@ -331,6 +392,7 @@ async function loadCapitalAQI() {
   ];
 
   const container = document.getElementById("capitalAQI");
+
   container.innerHTML = "<h3>Indian Capital AQI</h3>";
 
   for (let city of capitals) {
@@ -343,6 +405,8 @@ async function loadCapitalAQI() {
 
       const g = await geo.json();
 
+      if (!g.length) continue;
+
       const res = await fetch(
         `https://api.openweathermap.org/data/2.5/air_pollution?lat=${g[0].lat}&lon=${g[0].lon}&appid=${API_KEY}`
       );
@@ -351,22 +415,30 @@ async function loadCapitalAQI() {
 
       const aqi = data.list[0].main.aqi * 50;
 
-      container.innerHTML += `<div>${city} : AQI ${aqi}</div>`;
+      const div = document.createElement("div");
+
+      div.className = "capital-item";
+
+      div.innerHTML = `<b>${city}</b> : AQI ${aqi}`;
+
+      container.appendChild(div);
 
     } catch {}
 
   }
 
-  container.scrollIntoView({behavior:"smooth"});
+  container.scrollIntoView({ behavior: "smooth" });
+
   sideMenu.style.left = "-280px";
 
 }
+
 
 // ================= MENU SCROLL =================
 document.getElementById("menuCharts").onclick = () => {
 
   document.querySelector(".chart-container")
-  .scrollIntoView({behavior:"smooth"});
+    .scrollIntoView({ behavior: "smooth" });
 
   sideMenu.style.left = "-280px";
 
@@ -375,7 +447,7 @@ document.getElementById("menuCharts").onclick = () => {
 document.getElementById("menuReport").onclick = () => {
 
   document.querySelector(".report-container")
-  .scrollIntoView({behavior:"smooth"});
+    .scrollIntoView({ behavior: "smooth" });
 
   sideMenu.style.left = "-280px";
 
