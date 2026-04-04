@@ -68,7 +68,7 @@ function setupUI() {
 
   document.getElementById("menuCapitals").onclick = () => {
     showTab("capitalTab");
-    loadAQI();
+    loadCapitalAQI();
     sideMenu.classList.remove("open");
   };
 
@@ -132,14 +132,14 @@ async function handleMapClick(e) {
 
   try {
     const geoRes = await fetch(`${BASE_URL}/api/reverse?lat=${lat}&lon=${lng}`);
-    const geoData = await geoRes.json();
+    const result = await geoRes.json();
 
-    if (!Array.isArray(geoData) || geoData.length === 0) {
+    if (result.status !== "success" || !result.data) {
       alert("City not found");
       return;
     }
 
-    const city = geoData[0].name;
+    const city = result.data.name;
     loadAQI(lat, lng, city);
 
   } catch (err) {
@@ -246,12 +246,16 @@ async function searchCity() {
 
   try {
     const res = await fetch(`${BASE_URL}/api/geocode?city=${encodeURIComponent(city)}`);
-    const data = await res.json();
-    if (!data.length) return alert("City not found");
+    const result = await res.json();
 
-    loadAQI(data[0].lat, data[0].lon, data[0].name);
+    if (result.status !== "success" || !result.data) {
+      return alert("City not found");
+    }
 
-  } catch {
+    loadAQI(result.data.lat, result.data.lon, result.data.name);
+
+  } catch (err) {
+    console.error(err);
     alert("Search failed");
   }
 }
@@ -266,7 +270,7 @@ function useMyLocation() {
 }
 
 // ================= CAPITAL AQI =================
-async function loadAQI() {
+async function loadCapitalAQI() {
 
   const cities = [
     { name: "Delhi", lat: 28.6139, lon: 77.2090 },
