@@ -1,7 +1,23 @@
 /* ===========================
-🔥 TV-STYLE INTRO ANIMATION
+GLOBAL RESET
 =========================== */
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Poppins", Arial, sans-serif;
+}
 
+html,body{
+height:100%;
+background:#e8f5f5;
+scroll-behavior:smooth;
+-webkit-tap-highlight-color: transparent;
+}
+
+/* ===========================
+TV INTRO ANIMATION
+=========================== */
 #intro{
 position:fixed;
 inset:0;
@@ -38,21 +54,8 @@ to{opacity:1;}
 }
 
 /* ===========================
-RESET
-=========================== */
-
-html,body{
-height:100%;
-margin:0;
-font-family:Arial,sans-serif;
-background:#e8f5f5;
-scroll-behavior:smooth;
-}
-
-/* ===========================
 HEADER
 =========================== */
-
 .header{
 height:60px;
 background:#2c3e50;
@@ -61,12 +64,26 @@ text-align:center;
 line-height:60px;
 font-size:22px;
 font-weight:bold;
+position:relative;
+}
+
+/* MENU BUTTON */
+#menuBtn{
+position:absolute;
+top:12px;
+left:15px;
+font-size:26px;
+color:white;
+background:#1e88e5;
+padding:6px 12px;
+border-radius:6px;
+cursor:pointer;
+z-index:8000;
 }
 
 /* ===========================
-MAP WRAPPER
+MAP
 =========================== */
-
 .map-wrapper{
 position:relative;
 width:100%;
@@ -82,7 +99,6 @@ z-index:1;
 /* ===========================
 AQI PANEL
 =========================== */
-
 .aqi-panel{
 position:absolute;
 top:20px;
@@ -103,15 +119,15 @@ to{transform:translateY(0);opacity:1;}
 }
 
 .aqi-panel h3{
-margin:0 0 12px;
 text-align:center;
 color:#2e7d32;
 font-size:18px;
+margin-bottom:10px;
 }
 
 .aqi-panel p{
-margin:6px 0;
 font-size:14px;
+margin:5px 0;
 }
 
 #aqi-value{
@@ -140,7 +156,6 @@ background:#1565c0;
 /* ===========================
 SEARCH BAR
 =========================== */
-
 .search-container{
 position:absolute;
 top:90px;
@@ -184,7 +199,6 @@ cursor:pointer;
 /* ===========================
 HEATMAP LEGEND
 =========================== */
-
 .heatmap-legend{
 position:absolute;
 bottom:20px;
@@ -195,7 +209,6 @@ border-radius:12px;
 box-shadow:0 6px 20px rgba(0,0,0,0.25);
 z-index:2000;
 font-size:14px;
-line-height:22px;
 }
 
 .legend-color{
@@ -204,7 +217,6 @@ width:18px;
 height:18px;
 margin-right:8px;
 border-radius:4px;
-vertical-align:middle;
 }
 
 .good{background:#00e400;}
@@ -216,7 +228,6 @@ vertical-align:middle;
 /* ===========================
 CARDS / SECTIONS
 =========================== */
-
 .weather-box,
 .chart-container,
 .report-container,
@@ -230,7 +241,7 @@ border-radius:12px;
 box-shadow:0 4px 15px rgba(0,0,0,0.15);
 }
 
-/* HISTORY ITEMS */
+/* HISTORY */
 .history-item{
 padding:10px;
 margin-bottom:10px;
@@ -238,25 +249,12 @@ border-radius:8px;
 background:#f3f6f8;
 }
 
-/* CAPITAL ITEMS */
-.capital-item{
-padding:8px;
-margin-bottom:6px;
-border-bottom:1px solid #eee;
-}
-
-/* ===========================
-CHART
-=========================== */
-
+/* CHART */
 .chart-container canvas{
 max-height:300px;
 }
 
-/* ===========================
-AQI GUIDE TABLE
-=========================== */
-
+/* AQI GUIDE TABLE */
 .aqi-guide table{
 width:100%;
 border-collapse:collapse;
@@ -277,7 +275,6 @@ border-bottom:1px solid #ddd;
 /* ===========================
 AQI ALERT
 =========================== */
-
 .aqi-alert{
 position:fixed;
 top:0;
@@ -296,7 +293,6 @@ display:none;
 }
 
 .aqi-alert-box{
-position:relative;
 background:white;
 width:340px;
 padding:25px;
@@ -310,32 +306,9 @@ animation:alertPop 0.35s ease;
 100%{transform:scale(1);opacity:1;}
 }
 
-#aqiAlertClose{
-position:absolute;
-top:10px;
-right:15px;
-font-size:22px;
-cursor:pointer;
-}
-
 /* ===========================
 SIDEBAR
 =========================== */
-
-#menuBtn{
-position:absolute;
-top:12px;
-left:15px;
-font-size:28px;
-color:white;
-background:#1e88e5;
-padding:6px 12px;
-border-radius:6px;
-cursor:pointer;
-z-index:8000;
-}
-
-/* Sidebar hidden */
 .side-menu{
 position:fixed;
 top:0;
@@ -350,7 +323,6 @@ z-index:9000;
 overflow-y:auto;
 }
 
-/* Sidebar open */
 .side-menu.open{
 left:0;
 }
@@ -361,7 +333,6 @@ margin-bottom:10px;
 border-radius:8px;
 cursor:pointer;
 background:#f3f6f8;
-transition:0.25s;
 }
 
 .side-menu li:hover{
@@ -370,15 +341,141 @@ transform:translateX(4px);
 }
 
 /* ===========================
-RESPONSIVE
+MOBILE RESPONSIVE
 =========================== */
-
 @media(max-width:768px){
-.aqi-panel{width:200px;}
-.search-box input{width:140px;}
+
+.aqi-panel{
+width:180px;
+left:10px;
+top:10px;
+padding:12px;
+}
+
+.search-container{
+top:70px;
+}
+
+.side-menu{
+width:100%;
+left:-100%;
+}
+
+.side-menu.open{
+left:0;
+}
+
+.chart-container canvas{
+max-height:220px;
+}
+
 }
 
 @media(max-width:480px){
-.search-box{flex-direction:column;}
-.search-box input{width:160px;}
+
+.search-box{
+flex-direction:column;
+border-radius:20px;
+}
+
+.search-box input{
+width:100%;
+}
+
+.header{
+font-size:18px;
+}
+
+.aqi-panel{
+width:160px;
+}
+
+}
+
+.section {
+  display: none;
+  margin: 20px;
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.backBtn{
+  background:#1e88e5;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  border-radius:6px;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+
+.backBtn:hover{
+  background:#1565c0;
+}
+
+/* ===========================
+TABS NAVIGATION BAR
+=========================== */
+.tabs {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  padding: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  position: sticky;
+  top: 60px;
+  z-index: 5000;
+}
+
+/* TAB BUTTON */
+.tabBtn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 8px;
+  transition: 0.3s;
+}
+
+/* HOVER EFFECT */
+.tabBtn:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-2px);
+}
+
+/* ACTIVE TAB */
+.tabBtn.active {
+  background: #00c6ff;
+  color: black;
+  font-weight: bold;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+
+.tab-content {
+  display: none;
+  padding: 20px;
+  min-height: calc(100vh - 140px);
+  background: #f4f7fb;
+  animation: fadeSlide 0.4s ease;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* SMOOTH ANIMATION */
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
