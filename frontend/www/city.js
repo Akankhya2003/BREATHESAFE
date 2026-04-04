@@ -1,12 +1,15 @@
+const BASE_URL = "https://breathesafe-3g5q.onrender.com";
+
 // ================= GET DATA FROM LOCAL STORAGE =================
 const city = localStorage.getItem("cityName");
 const lat = parseFloat(localStorage.getItem("cityLat"));
 const lon = parseFloat(localStorage.getItem("cityLon"));
 
-if (!city || !lat || !lon) {
-  alert("No city selected.");
-  window.location.href = "index.html";
-}
+if (!city || isNaN(lat) || isNaN(lon)) 
+  {
+    alert("No city selected.");
+    window.location.href = "index.html";
+  }
 
 // ================= SET HEADER =================
 document.getElementById("cityTitle").innerText = "🌍 AQI Dashboard - " + city;
@@ -45,7 +48,7 @@ function getAQIStatus(aqi){
 // ================= LOAD AQI =================
 async function loadAQI() {
   try {
-    const res = await fetch(`http://localhost:5000/api/aqi?lat=${lat}&lon=${lon}`);
+    const res = await fetch(`${BASE_URL}/api/aqi?lat=${lat}&lon=${lon}`);
     const data = await res.json();
 
     if(!data?.data) throw new Error("Invalid AQI data");
@@ -56,10 +59,6 @@ async function loadAQI() {
     document.getElementById("heroAQI").innerText = aqi;
     document.getElementById("heroAQI").style.color = getAQIColor(aqi);
     document.getElementById("heroStatus").innerText = getAQIStatus(aqi);
-
-    // ✅ FIX: Added PM10
-    document.getElementById("heroPM25").innerText = pollution.pm25 || "--";
-    document.getElementById("heroPM10").innerText = pollution.pm10 || "--";
 
     setHealthAdvice(aqi);
     moveAQIMarker(aqi);
@@ -81,7 +80,7 @@ function moveAQIMarker(aqi){
 // ================= WEATHER =================
 async function loadWeather() {
   try {
-    const res = await fetch(`http://localhost:5000/api/weather?lat=${lat}&lon=${lon}`);
+    const res = await fetch(`${BASE_URL}/api/weather?lat=${lat}&lon=${lon}`);
     const data = await res.json();
 
     document.getElementById("heroTemp").innerText = data.current_weather.temperature;
@@ -92,11 +91,10 @@ async function loadWeather() {
     console.error("Weather error:", err);
   }
 }
-
 // ================= LOAD AQI CHART DATA =================
 async function loadAQICharts(){
   try {
-    const res = await fetch(`http://localhost:5000/api/aqi-chart?lat=${lat}&lon=${lon}`);
+    const res = await fetch(`${BASE_URL}/api/aqi-chart?lat=${lat}&lon=${lon}`);
     const data = await res.json();
 
     if(!data.hourly) throw new Error("No chart data");
@@ -108,6 +106,7 @@ async function loadAQICharts(){
     let filteredAQI = [];
     let filteredTime = [];
 
+    // ===== FILTER VALID DATA =====
     for(let i = 0; i < hourlyTime.length; i++){
       const t = new Date(hourlyTime[i]);
       if(t <= now && hourlyAQI[i] != null){
@@ -116,8 +115,10 @@ async function loadAQICharts(){
       }
     }
 
+    // ===== 24 HOUR CHART =====
     draw24Chart(filteredTime.slice(-24), filteredAQI.slice(-24));
 
+    // ===== DAILY AVERAGE =====
     let dailyAQIMap = {};
 
     for(let i = 0; i < filteredAQI.length; i++){
@@ -136,18 +137,109 @@ async function loadAQICharts(){
       dailyAQI.push(Math.round(avg));
     });
 
-    drawWeeklyChart(dailyDates.slice(-7), dailyAQI.slice(-7));
-    drawMonthlyChart(dailyDates.slice(-30), dailyAQI.slice(-30));
+// ================= MIN / MAX AQI WITH TIME =================
+if(filteredAQI.length > 0){
 
-  } catch(err){
-    console.error("Chart AQI error:", err);
+  let minAQI = filteredAQI[0];
+  let maxAQI = filteredAQI[0];
+  let minTime = filteredTime[0];
+  let maxTime = filteredTime[0];
+
+  for(let i = 0; i < filteredAQI.length; i++){
+    if(filteredAQI[i] < minAQI){
+      minAQI = filteredAQI[i];
+      minTime = filteredTime[i];
+    }
+
+    if(filteredAQI[i] > maxAQI){
+      maxAQI = filteredAQI[i];
+      maxTime = filteredTime[i];
+    }
   }
+
+  const minEl = document.getElementById("minAQI");
+  const maxEl = document.getElementById("maxAQI");
+
+  if(minEl){
+    const d = new Date(minTime);
+    minEl.innerText = `${minAQI} on ${d.toLocaleDateString()} at ${d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+  }
+
+  if(maxEl){
+    const d = new Date(maxTime);
+    maxEl.innerText = `${maxAQI} on ${d.toLocaleDateString()} at ${d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+  }
+}
+
+// ================= WEEKLY (MON → SUN) =================
+const today = new Date();
+const day = today.getDay();
+
+const monday = new Date(today);
+const diff = (day === 0 ? -6 : 1 - day);
+monday.setDate(today.getDate() + diff);
+monday.setHours(0,0,0,0);
+
+let weekLabels = [];
+let weekAQI = [];
+
+for (let i = 0; i < 7; i++) {
+  const d = new Date(monday);
+  d.setDate(monday.getDate() + i);
+
+  const dateStr = d.toISOString().split("T")[0];
+  const index = dailyDates.indexOf(dateStr);
+
+  if (index !== -1) {
+    weekAQI.push(dailyAQI[index]);
+  } else {
+    weekAQI.push(null);
+  }
+
+  weekLabels.push(
+    d.toLocaleDateString("en-US", { weekday: "short" })
+  );
+}
+
+drawWeeklyChart(weekLabels, weekAQI);
+
+// ================= MONTHLY =================
+const currentYear = today.getFullYear();
+let monthlyMap = {};
+
+for (let i = 0; i < dailyDates.length; i++) {
+  const d = new Date(dailyDates[i]);
+
+  if (d.getFullYear() === currentYear) {
+    const m = d.getMonth();
+    if (!monthlyMap[m]) monthlyMap[m] = [];
+    monthlyMap[m].push(dailyAQI[i]);
+  }
+}
+
+let monthLabels = [];
+let monthAQI = [];
+
+Object.keys(monthlyMap).sort((a,b)=>a-b).forEach(m => {
+  const arr = monthlyMap[m];
+  const avg = arr.reduce((a,b)=>a+b,0) / arr.length;
+  monthAQI.push(Math.round(avg));
+
+  monthLabels.push(
+    new Date(currentYear, m).toLocaleString("en-US", { month: "short" })
+  );
+});
+
+drawMonthlyChart(monthLabels, monthAQI);
+} catch(err){
+  console.error("Chart AQI error:", err);
+}
 }
 
 // ================= POLLUTANTS =================
 async function loadPollutants(){
   try {
-    const res = await fetch(`http://localhost:5000/api/pollutants?lat=${lat}&lon=${lon}`);
+    const res = await fetch(`${BASE_URL}/api/pollutants?lat=${lat}&lon=${lon}`);
     const data = await res.json();
 
     if(!data.hourly) throw new Error("No pollutant data");
@@ -156,11 +248,12 @@ async function loadPollutants(){
     const now = new Date();
 
     function getClosestValue(values){
-      let closestIndex = 0;
+      let closestIndex = -1;
       let minDiff = Infinity;
 
       for(let i = 0; i < times.length; i++){
         if(values[i] == null) continue;
+
         const diff = Math.abs(now - new Date(times[i]));
         if(diff < minDiff){
           minDiff = diff;
@@ -168,15 +261,23 @@ async function loadPollutants(){
         }
       }
 
+      if(closestIndex === -1) return null;
       return Math.round(values[closestIndex]);
     }
 
-    setPollutant("pm25", getClosestValue(data.hourly.pm2_5));
-    setPollutant("pm10", getClosestValue(data.hourly.pm10));
+    const pm25Val = getClosestValue(data.hourly.pm2_5);
+    const pm10Val = getClosestValue(data.hourly.pm10);
+
+    setPollutant("pm25", pm25Val);
+    setPollutant("pm10", pm10Val);
     setPollutant("co", getClosestValue(data.hourly.carbon_monoxide));
     setPollutant("no2", getClosestValue(data.hourly.nitrogen_dioxide));
     setPollutant("so2", getClosestValue(data.hourly.sulphur_dioxide));
     setPollutant("o3", getClosestValue(data.hourly.ozone));
+
+    // HERO SECTION VALUES
+    document.getElementById("heroPM25").innerText = pm25Val ?? "--";
+    document.getElementById("heroPM10").innerText = pm10Val ?? "--";
 
   } catch(err){
     console.error("Pollutant error:", err);
