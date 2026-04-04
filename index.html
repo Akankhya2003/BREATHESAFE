@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIS AQI Monitoring System</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="style.css"/>
+</head>
+
+<body>
+
+<!-- INTRO SCREEN -->
+<div id="intro">
+  <img src="assets/Logo.jpeg" class="logo"/>
+  <h2>BreatheSafe - GIS Based Air Quality Monitoring System</h2>
+</div>
+
+<!-- MAIN APPLICATION -->
+<div id="mainApp" style="display:none;">
+
+<!-- MENU BUTTON -->
+<div id="menuBtn">☰</div>
+
+<!-- SIDEBAR -->
+<div id="sideMenu" class="side-menu">
+  <span id="closeMenu">✖</span>
+  <h3>Features</h3>
+  <ul>
+    <li id="menuHistory">📜 AQI Search History</li>
+    <li id="menuCapitals">🏙 India Capitals AQI</li>
+    <li id="menuReport">📄 Daily AQI Report</li>
+    <li id="menuGuide">📘 AQI Guide</li>
+  </ul>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  🌍 Air Quality Index (AQI) Map
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tabBtn active" data-tab="mapTab">🗺 Map</button>
+  <button class="tabBtn" data-tab="historyTab">📜 History</button>
+  <button class="tabBtn" data-tab="capitalTab">🏙 Capitals</button>
+  <button class="tabBtn" data-tab="reportTab">📄 Report</button>
+  <button class="tabBtn" data-tab="guideTab">📘 Guide</button>
+</div>
+
+<!-- ================= MAP TAB ================= -->
+<div id="mapTab" class="tab-content active">
+  <div class="map-wrapper">
+
+    <!-- AQI PANEL -->
+    <div class="aqi-panel">
+      <h3>AQI Details</h3>
+      <p><strong>City:</strong> <span id="city-name">Click a city</span></p>
+      <p><strong>AQI:</strong> <span id="aqi-value">--</span></p>
+      <p><strong>Status:</strong> <span id="aqi-status">--</span></p>
+      <p><strong>Last Updated:</strong> <span id="lastUpdated">--</span></p>
+      <button id="locBtn">📍 Use My Location</button>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="search-container">
+      <input type="text" id="cityInput" placeholder="Search city..."/>
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <!-- MAP -->
+    <div id="map"></div>
+
+    <!-- WEATHER -->
+    <div class="weather-box">
+      <h3>Weather</h3>
+      <p>Temperature: <span id="weatherTemp">--</span></p>
+      <p>Wind Speed: <span id="weatherWind">--</span></p>
+    </div>
+
+    <!-- LEGEND -->
+    <div id="heatmapLegend" class="heatmap-legend">
+      <h4>Air Quality Levels</h4>
+      <div><span class="legend-color good"></span> Good (0–50)</div>
+      <div><span class="legend-color moderate"></span> Moderate (51–100)</div>
+      <div><span class="legend-color unhealthy"></span> Unhealthy (101–150)</div>
+      <div><span class="legend-color very-unhealthy"></span> Very Unhealthy (151–200)</div>
+      <div><span class="legend-color hazardous"></span> Hazardous (201+)</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= HISTORY TAB ================= -->
+<div id="historyTab" class="tab-content">
+  <h3>AQI Search History</h3>
+  <div id="historyContainer"></div>
+</div>
+
+<!-- ================= CAPITAL TAB ================= -->
+<div id="capitalTab" class="tab-content">
+  <h3>Major Cities AQI</h3>
+  <div id="capitalAQI"></div>
+</div>
+
+<!-- ================= REPORT TAB ================= -->
+<div id="reportTab" class="tab-content">
+  <h3>Daily AQI Report</h3>
+  <div id="dailyReport">No report yet</div>
+</div>
+
+<!-- ================= GUIDE TAB ================= -->
+<div id="guideTab" class="tab-content">
+  <h3>AQI Health Guide</h3>
+  <p>0–50: Good</p>
+  <p>51–100: Moderate</p>
+  <p>101–150: Unhealthy</p>
+  <p>151–200: Very Unhealthy</p>
+  <p>201+: Hazardous</p>
+</div>
+
+</div>
+
+<!-- AQI ALERT -->
+<div id="aqiAlert" class="aqi-alert hidden">
+  <div class="aqi-alert-box">
+    <span id="aqiAlertClose">✖</span>
+    <h2 id="aqiAlertTitle"></h2>
+    <p id="aqiAlertMessage"></p>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script type="module" src="script.js"></script>
+
+</body>
+</html>
