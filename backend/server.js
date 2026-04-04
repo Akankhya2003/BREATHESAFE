@@ -105,9 +105,9 @@ app.get("/api/aqi", async (req, res) => {
 
     const data = response.data;
 
-    // ✅ Handle API failure (rate limit etc.)
+    // ✅ HANDLE RATE LIMIT HERE
     if (data.status === "fail") {
-      console.error("AQI API ERROR:", data);
+      console.log("AQI LIMIT:", data);
 
       return res.json({
         status: "error",
@@ -116,17 +116,15 @@ app.get("/api/aqi", async (req, res) => {
       });
     }
 
-    // ✅ Success
     res.json(data);
 
   } catch (error) {
-    console.error("AQI SERVER ERROR:", error.message);
+    console.log("SERVER ERROR:", error.response?.data || error.message);
 
-    // ❌ DO NOT send 500
-    // ✅ Always send safe response
+    // ❗ IMPORTANT: DO NOT SEND 500
     res.json({
       status: "error",
-      message: "Server error or API limit",
+      message: "API limit or server issue",
       data: null
     });
   }
