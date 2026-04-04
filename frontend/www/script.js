@@ -68,7 +68,7 @@ function setupUI() {
 
   document.getElementById("menuCapitals").onclick = () => {
     showTab("capitalTab");
-    loadCapitalAQI();
+    loadAQI();
     sideMenu.classList.remove("open");
   };
 
@@ -266,60 +266,52 @@ function useMyLocation() {
 }
 
 // ================= CAPITAL AQI =================
-async function loadCapitalAQI() {
-  const capitals = [
-    { name:"Amaravati (Andhra Pradesh)",lat:16.5062,lon:80.6480 },
-    { name:"Itanagar (Arunachal Pradesh)",lat:27.0844,lon:93.6053 },
-    { name:"Dispur (Assam)",lat:26.1433,lon:91.7898 },
-    { name:"Patna (Bihar)",lat:25.5941,lon:85.1376 },
-    { name:"Raipur (Chhattisgarh)",lat:21.2514,lon:81.6296 },
-    { name:"Panaji (Goa)",lat:15.4909,lon:73.8278 },
-    { name:"Gandhinagar (Gujarat)",lat:23.2156,lon:72.6369 },
-    { name:"Chandigarh (Haryana)",lat:30.7333,lon:76.7794 },
-    { name:"Shimla (Himachal Pradesh)",lat:31.1048,lon:77.1734 },
-    { name:"Ranchi (Jharkhand)",lat:23.3441,lon:85.3096 },
-    { name:"Bengaluru (Karnataka)",lat:12.9716,lon:77.5946 },
-    { name:"Thiruvananthapuram (Kerala)",lat:8.5241,lon:76.9366 },
-    { name:"Bhopal (Madhya Pradesh)",lat:23.2599,lon:77.4126 },
-    { name:"Mumbai (Maharashtra)",lat:19.0760,lon:72.8777 },
-    { name:"Imphal (Manipur)",lat:24.8170,lon:93.9368 },
-    { name:"Shillong (Meghalaya)",lat:25.5788,lon:91.8933 },
-    { name:"Aizawl (Mizoram)",lat:23.7271,lon:92.7176 },
-    { name:"Kohima (Nagaland)",lat:25.6751,lon:94.1086 },
-    { name:"Bhubaneswar (Odisha)",lat:20.2961,lon:85.8245 },
-    { name:"Jaipur (Rajasthan)",lat:26.9124,lon:75.7873 },
-    { name:"Gangtok (Sikkim)",lat:27.3389,lon:88.6065 },
-    { name:"Chennai (Tamil Nadu)",lat:13.0827,lon:80.2707 },
-    { name:"Hyderabad (Telangana)",lat:17.3850,lon:78.4867 },
-    { name:"Agartala (Tripura)",lat:23.8315,lon:91.2868 },
-    { name:"Lucknow (Uttar Pradesh)",lat:26.8467,lon:80.9462 },
-    { name:"Dehradun (Uttarakhand)",lat:30.3165,lon:78.0322 },
-    { name:"Kolkata (West Bengal)",lat:22.5726,lon:88.3639 }
+async function loadAQI() {
+
+  const cities = [
+    { name: "Delhi", lat: 28.6139, lon: 77.2090 },
+    { name: "Mumbai", lat: 19.0760, lon: 72.8777 },
+    { name: "Bangalore", lat: 12.9716, lon: 77.5946 },
+    { name: "Bhubaneswar", lat: 20.2961, lon: 85.8245 },
+    { name: "Gurugram", lat: 28.4595, lon: 77.0266 },
+    { name: "Chandigarh", lat: 30.7333, lon: 76.7794 },
+    { name: "Chennai", lat: 13.0827, lon: 80.2707 },
+    { name: "Kolkata", lat: 22.5726, lon: 88.3639 },
+    { name: "Pune", lat: 18.5204, lon: 73.8567 },
+    { name: "Ahmedabad", lat: 23.0225, lon: 72.5714 }
   ];
 
   const container = document.getElementById("capitalAQI");
-  container.innerHTML = "Loading...";
-
+  
   let html = "";
 
-  for (let city of capitals) {
+  for (let city of cities) {
     try {
       const res = await fetch(`${BASE_URL}/api/aqi?lat=${city.lat}&lon=${city.lon}`);
+
+      if (!res.ok) throw new Error("API Error");
+
       const data = await res.json();
 
-      let aqi = "Not Available";
+      let aqi = data?.data?.current?.pollution?.aqius ?? "Not Available";
 
-      // ✅ Safely extract AQI
-      if (data && data.data && data.data.current && data.data.current.pollution) {
-        const pollution = data.data.current.pollution;
-        if (pollution.aqius != null) aqi = pollution.aqius;
-      }
+      html += `
+        <div class="history-item">
+          ${city.name} - AQI ${aqi}
+        </div>
+      `;
 
-      html += `<div class="history-item">${city.name} - AQI ${aqi}</div>`;
     } catch (err) {
-      console.error(`Error fetching AQI for ${city.name}:`, err);
-      html += `<div class="history-item">${city.name} - AQI Not Available</div>`;
+      console.error(`Error for ${city.name}:`, err);
+      html += `
+        <div class="history-item">
+          ${city.name} - AQI Not Available
+        </div>
+      `;
     }
+
+    // ✅ small delay to avoid rate limit
+    await new Promise(res => setTimeout(res, 1000));
   }
 
   container.innerHTML = html;
