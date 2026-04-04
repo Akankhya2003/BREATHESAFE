@@ -8,8 +8,6 @@ require("dotenv").config();
 const app = express();
 app.use(cors());
 
-const PORT = process.env.PORT || 5000;
-
 // ================= AQI =================
 app.get("/api/aqi", async (req, res) => {
   const { lat, lon } = req.query;
@@ -97,18 +95,40 @@ app.get("/api/aqi-chart", async (req, res) => {
 });
 
 // ================= POLLUTANTS =================
-app.get("/api/pollutants", async (req, res) => {
+app.get("/api/aqi", async (req, res) => {
   const { lat, lon } = req.query;
 
   try {
     const response = await axios.get(
-      `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone&timezone=auto`
+      `https://api.airvisual.com/v2/nearest_city?lat=${lat}&lon=${lon}&key=${process.env.IQAIR_API_KEY}`
     );
 
-    res.json(response.data);
+    const data = response.data;
+
+    // ✅ Handle API failure (rate limit etc.)
+    if (data.status === "fail") {
+      console.error("AQI API ERROR:", data);
+
+      return res.json({
+        status: "error",
+        message: data.data.message,
+        data: null
+      });
+    }
+
+    // ✅ Success
+    res.json(data);
+
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ error: "Pollutant data failed" });
+    console.error("AQI SERVER ERROR:", error.message);
+
+    // ❌ DO NOT send 500
+    // ✅ Always send safe response
+    res.json({
+      status: "error",
+      message: "Server error or API limit",
+      data: null
+    });
   }
 });
 
@@ -118,6 +138,12 @@ app.get("/", (req, res) => {
 });
 
 // ================= START SERVER =================
+const PORT = process.env.PORT; // Use Render-assigned port
+if (!PORT) {
+  console.error("ERROR: PORT not defined. Exiting...");
+  process.exit(1);
+}
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
