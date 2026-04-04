@@ -8,7 +8,7 @@ require("dotenv").config();
 const app = express();
 app.use(cors());
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // ================= AQI =================
 app.get("/api/aqi", async (req, res) => {
@@ -20,9 +20,15 @@ app.get("/api/aqi", async (req, res) => {
     );
 
     res.json(response.data);
+
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ error: "Failed to fetch AQI data" });
+    console.error("AQI API ERROR:");
+    console.error(error.response?.data || error.message);
+
+    res.status(500).json({
+      error: "Failed to fetch AQI data",
+      details: error.response?.data
+    });
   }
 });
 
@@ -32,7 +38,7 @@ app.get("/api/weather", async (req, res) => {
 
   try {
     const response = await axios.get(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
     );
 
     res.json(response.data);
@@ -42,7 +48,7 @@ app.get("/api/weather", async (req, res) => {
   }
 });
 
-// ================= GEOCODE (SEARCH CITY) =================
+// ================= GEOCODE =================
 app.get("/api/geocode", async (req, res) => {
   const { city } = req.query;
 
@@ -74,7 +80,7 @@ app.get("/api/reverse", async (req, res) => {
   }
 });
 
-// ================= AQI CHART DATA =================
+// ================= AQI CHART =================
 app.get("/api/aqi-chart", async (req, res) => {
   const { lat, lon } = req.query;
 
@@ -113,5 +119,5 @@ app.get("/", (req, res) => {
 
 // ================= START SERVER =================
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
