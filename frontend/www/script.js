@@ -164,7 +164,7 @@ async function loadAQI(lat, lon, cityName) {
 
     const aqi = aqiData.data.current.pollution.aqius;
     const pollution = aqiData.data.current.pollution;
-    
+
     const components = {
       pm2_5: pollution.pm25 || 0,
       pm10: pollution.pm10 || 0,
@@ -299,7 +299,7 @@ async function loadCapitalAQI() {
 {name:"Kolkata (West Bengal)",lat:22.5726,lon:88.3639}
 ];
 
-  const container = document.getElementById("capitalAQI");
+const container = document.getElementById("capitalAQI");
   container.innerHTML = "Loading...";
 
   let html = "";
@@ -308,10 +308,16 @@ async function loadCapitalAQI() {
     try {
       const res = await fetch(`${BASE_URL}/api/aqi?lat=${city.lat}&lon=${city.lon}`);
       const data = await res.json();
-      const aqi = data.data.current.pollution.aqius;
+
+      let aqi = "Not Available";
+
+      if (data.data && data.data.current && data.data.current.pollution) {
+        aqi = data.data.current.pollution.aqius;
+      }
 
       html += `<div class="history-item">${city.name} - AQI ${aqi}</div>`;
-    } catch {
+    } catch (err) {
+      console.error(`Error fetching AQI for ${city.name}:`, err);
       html += `<div class="history-item">${city.name} - AQI Not Available</div>`;
     }
   }
