@@ -1,5 +1,4 @@
 // server.js
-
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -12,91 +11,9 @@ app.use(cors());
 app.get("/api/aqi", async (req, res) => {
   const { lat, lon } = req.query;
 
-  try {
-    const response = await axios.get(
-      `https://api.airvisual.com/v2/nearest_city?lat=${lat}&lon=${lon}&key=${process.env.IQAIR_API_KEY}`
-    );
-
-    res.json(response.data);
-
-  } catch (error) {
-    console.error("AQI API ERROR:");
-    console.error(error.response?.data || error.message);
-
-    res.status(500).json({
-      error: "Failed to fetch AQI data",
-      details: error.response?.data
-    });
+  if (!lat || !lon) {
+    return res.status(400).json({ status: "error", message: "Missing lat/lon", data: null });
   }
-});
-
-// ================= WEATHER =================
-app.get("/api/weather", async (req, res) => {
-  const { lat, lon } = req.query;
-
-  try {
-    const response = await axios.get(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
-    );
-
-    res.json(response.data);
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ error: "Failed to fetch weather data" });
-  }
-});
-
-// ================= GEOCODE =================
-app.get("/api/geocode", async (req, res) => {
-  const { city } = req.query;
-
-  try {
-    const response = await axios.get(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${process.env.OPENWEATHER_API_KEY}`
-    );
-
-    res.json(response.data);
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ error: "Geocoding failed" });
-  }
-});
-
-// ================= REVERSE GEOCODE =================
-app.get("/api/reverse", async (req, res) => {
-  const { lat, lon } = req.query;
-
-  try {
-    const response = await axios.get(
-      `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${process.env.OPENWEATHER_API_KEY}`
-    );
-
-    res.json(response.data);
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ error: "Reverse geocoding failed" });
-  }
-});
-
-// ================= AQI CHART =================
-app.get("/api/aqi-chart", async (req, res) => {
-  const { lat, lon } = req.query;
-
-  try {
-    const response = await axios.get(
-      `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto`
-    );
-
-    res.json(response.data);
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ error: "AQI chart data failed" });
-  }
-});
-
-// ================= POLLUTANTS =================
-app.get("/api/aqi", async (req, res) => {
-  const { lat, lon } = req.query;
 
   try {
     const response = await axios.get(
@@ -105,28 +22,108 @@ app.get("/api/aqi", async (req, res) => {
 
     const data = response.data;
 
-    // ✅ HANDLE RATE LIMIT HERE
+    // Handle rate limit / API fail
     if (data.status === "fail") {
-      console.log("AQI LIMIT:", data);
-
+      console.log("IQAir API FAIL:", data);
       return res.json({
         status: "error",
-        message: data.data.message,
+        message: data.data?.message || "API returned fail",
         data: null
       });
     }
 
-    res.json(data);
+    // Success
+    res.json({ status: "success", data: data.data });
 
   } catch (error) {
-    console.log("SERVER ERROR:", error.response?.data || error.message);
+    console.log("AQI SERVER ERROR:", error.response?.data || error.message);
 
-    // ❗ IMPORTANT: DO NOT SEND 500
+    // Fallback: do not crash frontend
     res.json({
       status: "error",
       message: "API limit or server issue",
       data: null
     });
+  }
+});
+
+// ================= WEATHER =================
+app.get("/api/weather", async (req, res) => {
+  const { lat, lon } = req.query;
+
+  if (!lat || !lon) {
+    return res.status(400).json({ error: "Missing lat/lon" });
+  }
+
+  try {
+    const response = await axios.get(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+    );
+
+    res.json({ status: "success", data: response.data });
+  } catch (error) {
+    console.log("WEATHER ERROR:", error.message);
+    res.json({ status: "error", message: "Failed to fetch weather data", data: null });
+  }
+});
+
+// ================= GEOCODE =================
+app.get("/api/geocode", async (req, res) => {
+  const { city } = req.query;
+
+  if (!city) {
+    return res.status(400).json({ error: "Missing city name" });
+  }
+
+  try {
+    const response = await axios.get(
+      `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${process.env.OPENWEATHER_API_KEY}`
+    );
+
+    res.json({ status: "success", data: response.data });
+  } catch (error) {
+    console.log("GEOCODE ERROR:", error.message);
+    res.json({ status: "error", message: "Geocoding failed", data: null });
+  }
+});
+
+// ================= REVERSE GEOCODE =================
+app.get("/api/reverse", async (req, res) => {
+  const { lat, lon } = req.query;
+
+  if (!lat || !lon) {
+    return res.status(400).json({ error: "Missing lat/lon" });
+  }
+
+  try {
+    const response = await axios.get(
+      `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${process.env.OPENWEATHER_API_KEY}`
+    );
+
+    res.json({ status: "success", data: response.data });
+  } catch (error) {
+    console.log("REVERSE GEOCODE ERROR:", error.message);
+    res.json({ status: "error", message: "Reverse geocoding failed", data: null });
+  }
+});
+
+// ================= AQI CHART =================
+app.get("/api/aqi-chart", async (req, res) => {
+  const { lat, lon } = req.query;
+
+  if (!lat || !lon) {
+    return res.status(400).json({ error: "Missing lat/lon" });
+  }
+
+  try {
+    const response = await axios.get(
+      `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto`
+    );
+
+    res.json({ status: "success", data: response.data });
+  } catch (error) {
+    console.log("AQI CHART ERROR:", error.message);
+    res.json({ status: "error", message: "AQI chart data failed", data: null });
   }
 });
 
@@ -136,11 +133,7 @@ app.get("/", (req, res) => {
 });
 
 // ================= START SERVER =================
-const PORT = process.env.PORT; // Use Render-assigned port
-if (!PORT) {
-  console.error("ERROR: PORT not defined. Exiting...");
-  process.exit(1);
-}
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
