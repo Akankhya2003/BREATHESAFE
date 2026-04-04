@@ -163,6 +163,7 @@ async function loadAQI(lat, lon, cityName) {
     }
 
     const aqi = aqiData.data.current.pollution.aqius;
+    const pollution = aqiData.data.current.pollution;
     
     const components = {
       pm2_5: pollution.pm25 || 0,
