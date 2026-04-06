@@ -78,31 +78,53 @@ app.get("/api/pollutants", async (req, res) => {
 
 // ================= WEATHER =================
 app.get("/api/weather", async (req, res) => {
-const { lat, lon } = req.query;
+  const { lat, lon } = req.query;
 
-if (!lat || !lon) {
-return res.status(400).json({ status: "error", message: "Missing lat/lon", data: null });
-}
-
-try {
-const response = await axios.get(
-`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
-);
-
-
-res.json({
-  status: "success",
-  data: {
-    temperature: response.data.current_weather.temperature,
-    windspeed: response.data.current_weather.windspeed
+  if (!lat || !lon) {
+    return res.status(400).json({
+      status: "error",
+      message: "Missing lat/lon",
+      data: null
+    });
   }
-});
 
+  try {
+    console.log("Weather request:", lat, lon);
 
-} catch (error) {
-console.log("WEATHER ERROR:", error.message);
-res.json({ status: "error", message: "Failed to fetch weather data", data: null });
-}
+    const response = await axios.get(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+    );
+
+    console.log("Open-Meteo response:", response.data);
+
+    const weather = response.data.current_weather;
+
+    // ✅ FIX: safe check
+    if (!weather) {
+      return res.json({
+        status: "error",
+        message: "No current weather data available",
+        data: null
+      });
+    }
+
+    res.json({
+      status: "success",
+      data: {
+        temperature: weather.temperature ?? "--",
+        windspeed: weather.windspeed ?? "--"
+      }
+    });
+
+  } catch (error) {
+    console.log("WEATHER ERROR FULL:", error.response?.data || error.message);
+
+    res.json({
+      status: "error",
+      message: "Failed to fetch weather data",
+      data: null
+    });
+  }
 });
 
 // ================= GEOCODE =================
