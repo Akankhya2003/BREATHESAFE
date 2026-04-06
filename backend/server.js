@@ -92,27 +92,39 @@ app.get("/api/weather", async (req, res) => {
     console.log("Weather request:", lat, lon);
 
     const response = await axios.get(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,windspeed_10m&timezone=auto`
     );
 
-    console.log("Open-Meteo response:", response.data);
+    const data = response.data;
+    console.log("FULL WEATHER DATA:", data);
 
-    const weather = response.data.current_weather;
+    // ✅ SAFE extraction
+    let temperature = data?.current_weather?.temperature;
+    let windspeed = data?.current_weather?.windspeed;
 
-    // ✅ FIX: safe check
-    if (!weather) {
+    // ✅ FALLBACK (VERY IMPORTANT)
+    if (temperature === undefined || windspeed === undefined) {
+      console.log("Using hourly fallback...");
+
+      temperature = data?.hourly?.temperature_2m?.[0];
+      windspeed = data?.hourly?.windspeed_10m?.[0];
+    }
+
+    // ❌ STILL no data
+    if (temperature === undefined || windspeed === undefined) {
       return res.json({
         status: "error",
-        message: "No current weather data available",
+        message: "Weather data unavailable",
         data: null
       });
     }
 
+    // ✅ SUCCESS
     res.json({
       status: "success",
       data: {
-        temperature: weather.temperature ?? "--",
-        windspeed: weather.windspeed ?? "--"
+        temperature,
+        windspeed
       }
     });
 
