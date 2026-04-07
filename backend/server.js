@@ -91,7 +91,7 @@ app.get("/api/weather", async (req, res) => {
   try {
     console.log("Weather request:", lat, lon);
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,windspeed_10m&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,windspeed_10m,relative_humidity_2m&timezone=auto`;
 
     const response = await axios.get(url, {
       timeout: 10000,
@@ -103,6 +103,10 @@ app.get("/api/weather", async (req, res) => {
     let temperature = data?.current_weather?.temperature;
     let windspeed = data?.current_weather?.windspeed;
 
+    // ✅ GET HUMIDITY
+    let humidity = data?.hourly?.relative_humidity_2m?.[0];
+
+    // fallback if current not available
     if (temperature == null || windspeed == null) {
       temperature = data?.hourly?.temperature_2m?.[0];
       windspeed = data?.hourly?.windspeed_10m?.[0];
@@ -116,23 +120,26 @@ app.get("/api/weather", async (req, res) => {
       });
     }
 
+    // ✅ RETURN HUMIDITY ALSO
     res.json({
       status: "success",
       data: {
         temperature: Number(temperature),
-        windspeed: Number(windspeed)
+        windspeed: Number(windspeed),
+        humidity: humidity != null ? Number(humidity) : null
       }
     });
 
   } catch (error) {
     console.log("WEATHER ERROR:", error.message);
 
-    // fallback dummy weather so UI never breaks
+    // ✅ fallback WITH humidity
     res.json({
       status: "success",
       data: {
         temperature: 25,
-        windspeed: 5
+        windspeed: 5,
+        humidity: 60
       }
     });
   }
