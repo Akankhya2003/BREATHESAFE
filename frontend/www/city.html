@@ -182,6 +182,32 @@ background:white;
 border-radius:3px;
 box-shadow:0 0 5px rgba(0,0,0,0.4);
 }
+
+#backBtn{
+margin:15px 5%;
+padding:12px 22px;
+background:#1a73e8;
+color:white;
+border:none;
+border-radius:10px;
+font-size:15px;
+cursor:pointer;
+box-shadow:0 4px 15px rgba(0,0,0,0.3);
+transition:.3s;
+}
+
+#backBtn:hover{
+background:#0d47a1;
+transform:translateY(-2px);
+}
+
+#backBtn{
+position:fixed;
+top:20px;
+left:20px;
+z-index:999;
+}
+
 </style>
 </head>
 
@@ -190,6 +216,8 @@ box-shadow:0 0 5px rgba(0,0,0,0.4);
 <div class="header">
 <h2 id="cityTitle">🌍 City AQI Analytics Dashboard</h2>
 </div>
+
+<button id="backBtn" onclick="goBack()">⬅ Back to Map</button>
 
 <!-- AQI HERO -->
 <div class="aqi-hero">
@@ -291,6 +319,12 @@ Source: IQAir (Real-time AQI)
 <ul id="healthAdvice"></ul>
 </div>
 </div>
+
+<script>
+function goBack(){
+window.location.href="index.html";
+}
+</script>
 
 <script src="city.js"></script>
 

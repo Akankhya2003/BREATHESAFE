@@ -15,44 +15,46 @@ scroll-behavior:smooth;
 -webkit-tap-highlight-color: transparent;
 }
 
-/* ===========================
-TV INTRO ANIMATION
-=========================== */
-#intro{
-position:fixed;
-inset:0;
-background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-color:white;
-z-index:9999;
+#intro {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 9999;
+  overflow: hidden;
+}
+#intro::before {
+  content: "";
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(0,198,255,0.4), transparent);
+  border-radius: 50%;
+  animation: floatGlow 6s infinite ease-in-out;
 }
 
-#intro .logo{
-width:180px;
-animation:zoomFade 3s ease-in-out;
+@keyframes floatGlow {
+  0% { transform: translate(-50px, -50px); }
+  50% { transform: translate(50px, 50px); }
+  100% { transform: translate(-50px, -50px); }
 }
 
-#intro h2{
-margin-top:20px;
-font-size:22px;
-letter-spacing:2px;
-animation:fadeIn 2s ease-in-out;
+#intro h2 {
+  font-size: 26px;
+  letter-spacing: 1.5px;
+  text-align: center;
+  animation: fadeSlideUp 1.5s ease;
+  z-index: 2;
+  color: #ffffff;
 }
-
-@keyframes zoomFade{
-0%{transform:scale(0.2);opacity:0;}
-60%{transform:scale(1.2);opacity:1;}
-100%{transform:scale(1);}
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes fadeIn{
-from{opacity:0;}
-to{opacity:1;}
-}
-
 /* ===========================
 HEADER
 =========================== */
@@ -85,15 +87,15 @@ z-index:8000;
 MAP
 =========================== */
 .map-wrapper{
-position:relative;
-width:100%;
-height:calc(100vh - 60px);
+  position: relative;
+  width: 100%;
 }
 
 #map{
-width:100%;
-height:100%;
-z-index:1;
+  width: 100%;
+  height: 60vh;
+  min-height: 400px;
+  max-height: 600px;
 }
 
 /* ===========================
@@ -345,74 +347,106 @@ MOBILE RESPONSIVE
 =========================== */
 @media(max-width:768px){
 
+.map-wrapper{
+display:flex;
+flex-direction:column;
+height:auto;
+padding:10px;
+gap:15px;
+}
+
+/* AQI PANEL */
 .aqi-panel{
-width:180px;
-left:10px;
-top:10px;
-padding:12px;
-}
-
-.search-container{
-top:70px;
-}
-
-.side-menu{
-width:100%;
-left:-100%;
-}
-
-.side-menu.open{
+position:relative;
+top:0;
 left:0;
+width:100%;
+margin:0;
+padding:15px;
 }
 
-.chart-container canvas{
-max-height:220px;
+/* SEARCH */
+.search-container{
+position:relative;
+top:0;
+left:0;
+transform:none;
+width:100%;
+margin:0;
+}
+
+/* SEARCH BOX */
+.search-box{
+display:flex;
+gap:10px;
+width:100%;
+}
+
+.search-box input{
+flex:1;
+padding:12px;
+border:none;
+border-radius:20px;
+outline:none;
+}
+
+.search-box button{
+padding:12px 20px;
+border:none;
+border-radius:20px;
+background:#1e88e5;
+color:white;
+}
+
+/* MAP */
+#map{
+height:400px;
+width:100%;
+border-radius:12px;
+overflow:hidden;
+}
+
+/* LEGEND */
+.heatmap-legend{
+position:relative;
+width:100%;
+margin:0;
+}
+
+/* TABS */
+.tabs{
+flex-wrap:wrap;
+gap:8px;
+}
+
+.tabBtn{
+flex:1 1 45%;
+}
+
+/* HEADER */
+.header{
+font-size:18px;
+padding-left:45px;
 }
 
 }
 
+/* EXTRA SMALL DEVICES */
 @media(max-width:480px){
 
 .search-box{
 flex-direction:column;
-border-radius:20px;
 }
 
-.search-box input{
+.search-box button{
 width:100%;
 }
 
-.header{
-font-size:18px;
+.tabBtn{
+font-size:12px;
+padding:8px;
 }
 
-.aqi-panel{
-width:160px;
-}
-
-}
-
-.section {
-  display: none;
-  margin: 20px;
-  padding: 20px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-.backBtn{
-  background:#1e88e5;
-  color:white;
-  border:none;
-  padding:8px 14px;
-  border-radius:6px;
-  cursor:pointer;
-  margin-bottom:10px;
-}
-
-.backBtn:hover{
-  background:#1565c0;
 }
 
 /* ===========================
@@ -478,4 +512,241 @@ TABS NAVIGATION BAR
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.aqi-guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.aqi-guide-table th,
+.aqi-guide-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: left;
+}
+
+.aqi-guide-table th {
+  background-color: #007bff;
+  color: white;
+}
+
+.aqi-guide-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.aqi-guide-table tr:hover {
+  background-color: #d9eaff;
+}
+
+/* ===========================
+GLOBAL FIXES (IMPORTANT)
+=========================== */
+
+* {
+  box-sizing: border-box;
+  }
+
+body {
+margin: 0;
+overflow-x: hidden; /* prevents horizontal scroll */
+}
+
+/* ===========================
+TYPOGRAPHY UPGRADE (MODERN LOOK)
+=========================== */
+h1, h2, h3 {
+font-weight: 600;
+letter-spacing: 0.5px;
+color: #1f2d3d;
+}
+
+h2 {
+font-size: 28px;
+text-align: center;
+margin-bottom: 20px;
+}
+
+h3 {
+font-size: 20px;
+margin: 25px 0 10px;
+padding-left: 12px;
+position: relative;
+color: #34495e;
+}
+
+/* Accent line for headings */
+h3::before {
+content: "";
+position: absolute;
+left: 0;
+top: 6px;
+width: 4px;
+height: 18px;
+background: #00c6ff;
+border-radius: 2px;
+}
+
+p {
+font-size: 15px;
+line-height: 1.6;
+color: #555;
+}
+
+/* ===========================
+GUIDE TAB LAYOUT (IMPROVED)
+=========================== */
+.guide-container {
+width: 100%;
+max-width: 1100px;
+margin: auto;
+padding: 20px;
+}
+
+/* Center images nicely */
+.guide-item {
+text-align: center;
+margin-bottom: 30px;
+}
+
+/* ===========================
+IMAGES (CONTROLLED SIZE)
+=========================== */
+.guide-img {
+width: 100%;
+max-width: 650px; /* 🔥 FIX BIG IMAGE */
+height: auto;
+display: block;
+margin: 15px auto;
+border-radius: 12px;
+box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+transition: 0.3s ease;
+}
+
+.guide-img:hover {
+transform: scale(1.02);
+}
+
+/* ===========================
+IMAGE CAPTION (BETTER STYLE)
+=========================== */
+.img-caption {
+text-align: center;
+font-size: 14px;
+color: #777;
+margin-top: 8px;
+font-style: italic;
+}
+
+/* ===========================
+CARDS (PREMIUM LOOK)
+=========================== */
+.card {
+background: linear-gradient(135deg, #ffffff, #f4f9ff);
+border-left: 4px solid #1e88e5;
+padding: 20px;
+margin: 20px 0;
+border-radius: 12px;
+box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+transition: 0.3s ease;
+}
+
+.card:hover {
+transform: translateY(-5px);
+}
+
+.card h3 {
+color: #1e88e5;
+}
+
+/* Better list styling */
+.card ul {
+padding-left: 18px;
+}
+
+.card li {
+margin: 8px 0;
+font-size: 15px;
+line-height: 1.6;
+}
+
+/* ===========================
+TABLE (MODERN STYLE)
+=========================== */
+.aqi-guide-table {
+width: 100%;
+border-collapse: collapse;
+border-radius: 10px;
+overflow: hidden;
+margin-top: 15px;
+}
+
+.aqi-guide-table th {
+background: linear-gradient(135deg, #1e88e5, #43a047);
+color: white;
+padding: 12px;
+font-weight: 600;
+}
+
+.aqi-guide-table td {
+padding: 12px;
+font-size: 14px;
+}
+
+.aqi-guide-table tr:nth-child(even) {
+background: #f4f8fb;
+}
+
+.aqi-guide-table tr:hover {
+background: #e3f2fd;
+}
+
+/* ===========================
+HIGHLIGHT IMPORTANT TEXT
+=========================== */
+.highlight {
+color: #e53935;
+font-weight: bold;
+}
+
+/* ===========================
+SPACING IMPROVEMENT
+=========================== */
+.tab-content {
+padding: 30px;
+}
+
+/* ===========================
+GLOBAL SAFETY
+=========================== */
+img {
+max-width: 100%;
+height: auto;
+display: block;
+}
+
+body {
+overflow-x: hidden;
+}
+
+.card ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.card li {
+  background: #f1f7ff;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: 0.2s;
+}
+
+.card li:hover {
+  background: #e3f2fd;
+}
+
+.guide-container h3 {
+  margin-top: 30px;
 }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GIS AQI Monitoring System</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="leaflet.css"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="style.css"/>
 </head>
@@ -14,7 +14,6 @@
 
 <!-- INTRO SCREEN -->
 <div id="intro">
-  <img src="assets/Logo.jpeg" class="logo"/>
   <h2>BreatheSafe - GIS Based Air Quality Monitoring System</h2>
 </div>
 
@@ -31,7 +30,6 @@
   <ul>
     <li id="menuHistory">📜 AQI Search History</li>
     <li id="menuCapitals">🏙 India Capitals AQI</li>
-    <li id="menuReport">📄 Daily AQI Report</li>
     <li id="menuGuide">📘 AQI Guide</li>
   </ul>
 </div>
@@ -45,8 +43,7 @@
 <div class="tabs">
   <button class="tabBtn active" data-tab="mapTab">🗺 Map</button>
   <button class="tabBtn" data-tab="historyTab">📜 History</button>
-  <button class="tabBtn" data-tab="capitalTab">🏙 Capitals</button>
-  <button class="tabBtn" data-tab="reportTab">📄 Report</button>
+  <button class="tabBtn" data-tab="capitalTab">🏙 Cities</button>
   <button class="tabBtn" data-tab="guideTab">📘 Guide</button>
 </div>
 
@@ -61,24 +58,20 @@
       <p><strong>AQI:</strong> <span id="aqi-value">--</span></p>
       <p><strong>Status:</strong> <span id="aqi-status">--</span></p>
       <p><strong>Last Updated:</strong> <span id="lastUpdated">--</span></p>
+      <p><strong>Data Source:</strong> <span id="dataSource">Live</span></p>
       <button id="locBtn">📍 Use My Location</button>
     </div>
 
     <!-- SEARCH -->
     <div class="search-container">
-      <input type="text" id="cityInput" placeholder="Search city..."/>
-      <button id="searchBtn">Search</button>
+      <div class="search-box"> 
+        <input type="text" id="cityInput"> 
+        <button id="searchBtn">Search</button> 
+      </div> 
     </div>
 
     <!-- MAP -->
     <div id="map"></div>
-
-    <!-- WEATHER -->
-    <div class="weather-box">
-      <h3>Weather</h3>
-      <p>Temperature: <span id="weatherTemp">--</span></p>
-      <p>Wind Speed: <span id="weatherWind">--</span></p>
-    </div>
 
     <!-- LEGEND -->
     <div id="heatmapLegend" class="heatmap-legend">
@@ -105,24 +98,107 @@
   <div id="capitalAQI"></div>
 </div>
 
-<!-- ================= REPORT TAB ================= -->
-<div id="reportTab" class="tab-content">
-  <h3>Daily AQI Report</h3>
-  <div id="dailyReport">No report yet</div>
-</div>
-
 <!-- ================= GUIDE TAB ================= -->
 <div id="guideTab" class="tab-content">
-  <h3>AQI Health Guide</h3>
-  <p>0–50: Good</p>
-  <p>51–100: Moderate</p>
-  <p>101–150: Unhealthy</p>
-  <p>151–200: Very Unhealthy</p>
-  <p>201+: Hazardous</p>
+
+  <div class="guide-container">  <!-- ✅ ADD THIS -->
+
+    <h2>🌍 Air Quality Awareness Dashboard</h2>
+
+  <!-- AQI IMAGE -->
+  <div class="card">
+  <h3>📊 AQI Levels Visualization</h3>
+
+  <div class="guide-item">
+    <img src="images/aqi-levels.png" class="guide-img">
+    <p class="img-caption">Figure: AQI Classification Levels</p>
+  </div>
 </div>
 
+  <!-- AQI TABLE -->
+  <h3>📘 AQI Health Guide</h3>
+  <table class="aqi-guide-table">
+    <thead>
+      <tr>
+        <th>AQI Range</th>
+        <th>Air Quality</th>
+        <th>Health Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>0–50</td><td>Good</td><td>Safe</td></tr>
+      <tr><td>51–100</td><td>Moderate</td><td>Slight risk</td></tr>
+      <tr><td>101–150</td><td>Unhealthy</td><td>Wear mask</td></tr>
+      <tr><td>151–200</td><td>Very Unhealthy</td><td>Avoid outdoor</td></tr>
+      <tr><td>201+</td><td>Hazardous</td><td>Stay indoors</td></tr>
+    </tbody>
+  </table>
+
+  <!-- INDOOR -->
+  <div class="card">
+    <h3>🏠 Indoor Air Quality Tips</h3>
+    <ul>
+      <li>❌ Avoid agarbatti & candles</li>
+      <li>🪟 Ensure proper ventilation</li>
+      <li>🌱 Use indoor plants</li>
+      <li>🚭 Avoid smoking indoors</li>
+    </ul>
+  </div>
+
+  <!-- OUTDOOR -->
+  <div class="card">
+    <h3>🚶 Outdoor Air Quality Tips</h3>
+    <ul>
+      <li>🚍 Use public transport</li>
+      <li>🚲 Walk or cycle</li>
+      <li>🔥 Avoid burning waste</li>
+      <li>🌳 Plant trees</li>
+    </ul>
+  </div>
+
+  <!-- POLLUTION IMAGE -->
+  <div class="card">
+  <h3>🏭 Sources of Air Pollution</h3>
+
+  <div class="guide-item">
+    <img src="images/pollution-sources.png" class="guide-img">
+    <p class="img-caption">Figure: Major Pollution Sources</p>
+  </div>
 </div>
 
+  <!-- ELDERS -->
+  <div class="card">
+    <h3>👴 For Elders & Sensitive People</h3>
+    <ul>
+      <li>😷 Use N95 mask</li>
+      <li>🏠 Stay indoors in high AQI</li>
+      <li>💊 Keep medicines ready</li>
+    </ul>
+  </div>
+
+  <!-- DISEASES -->
+  <div class="card">
+    <h3>⚠️ Diseases Due to Pollution</h3>
+    <ul>
+      <li>😤 Asthma</li>
+      <li>🫁 Bronchitis</li>
+      <li>🧬 Lung diseases</li>
+      <li>👁 Eye irritation</li>
+    </ul>
+  </div>
+
+  <!-- HEALTH IMAGE -->
+  <div class="card">
+  <h3>🧬 Health Effects</h3>
+
+  <div class="guide-item">
+    <img src="images/health-effects.png" class="guide-img">
+    <p class="img-caption">Figure: Health Impacts of Air Pollution</p>
+  </div>
+</div>
+
+  </div>  
+</div><!-- ✅ CLOSE THIS -->
 <!-- AQI ALERT -->
 <div id="aqiAlert" class="aqi-alert hidden">
   <div class="aqi-alert-box">
@@ -132,8 +208,8 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script src="leaflet.js"></script>
+<script src="leaflet-heat.js"></script>
 <script type="module" src="script.js"></script>
 
 </body>
