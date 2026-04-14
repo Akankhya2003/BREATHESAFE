@@ -4,6 +4,40 @@ const BASE_URL = "https://breathesafe-3g5q.onrender.com";
 // ================= MAP VARIABLES =================
 let map, marker = null;
 let autoRefreshInterval = null;
+const liveAQIStore = {};
+
+//======= SHARED API===============
+async function getAQI(lat, lon) {
+  const nLat = normalizeCoord(lat);
+  const nLon = normalizeCoord(lon);
+  const key = `${nLat},${nLon}`;
+
+  const res = await fetch(`${BASE_URL}/api/aqi?lat=${nLat}&lon=${nLon}`);
+  const data = await res.json();
+
+  let aqi = 100;
+  if (data?.status === "success") {
+    aqi = data.data.current.pollution.aqius;
+  }
+
+  // ✅ store latest value globally
+  liveAQIStore[key] = {
+    value: aqi,
+    time: Date.now()
+  };
+
+  return aqi;
+}
+
+function getLatestAQI(lat, lon) {
+  const key = `${normalizeCoord(lat)},${normalizeCoord(lon)}`;
+  return liveAQIStore[key]?.value ?? null;
+}
+
+//====== GLobal NORMALIZATION FUNCTION ========
+function normalizeCoord(num) {
+  return Number(Number(num).toFixed(4));
+}
 
 // ================= AUTO REFRESH =================
 function startAutoRefresh() {
@@ -15,7 +49,6 @@ function startAutoRefresh() {
     const city = localStorage.getItem("cityName");
 
     if (!isNaN(lat) && !isNaN(lon)) {
-      console.log("Auto refreshing AQI...");
       loadAQI(lat, lon, city);
     }
   }, 300000);
@@ -23,22 +56,29 @@ function startAutoRefresh() {
 
 // ================= APP START =================
 window.addEventListener("load", () => {
+
+  const intro = document.getElementById("intro");
+  const mainApp = document.getElementById("mainApp");
+
+  // STEP 1: SHOW INTRO FIRST
+  intro.style.display = "flex";
+  mainApp.style.display = "none";
+
+  // STEP 2: KEEP INTRO FOR 2–3 SECONDS
   setTimeout(() => {
-    document.getElementById("intro").style.display = "none";
-    document.getElementById("mainApp").style.display = "block";
+
+    intro.style.display = "none";
+    mainApp.style.display = "block";
 
     setupUI();
 
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       initMap();
+      setTimeout(() => map.invalidateSize(), 300);
+    });
 
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 800);
+  }, 2500); // ⬅️ intro duration
 
-    }, 300);
-
-  }, 3000);
 });
 
 // ================= AQI STATUS =================
@@ -129,10 +169,9 @@ function initMap() {
 
   map.on("click", handleMapClick);
 
-  // VERY IMPORTANT for mobile/webview rendering
-  setTimeout(() => {
-    map.invalidateSize();
-  }, 800);
+  setTimeout(() => map.invalidateSize(), 500);
+  setTimeout(() => map.invalidateSize(), 1000);
+  setTimeout(() => map.invalidateSize(), 1500);
 
   console.log("Map loaded successfully");
 }
@@ -159,101 +198,126 @@ async function handleMapClick(e) {
   }
 }
 
-function updateUIWithAQI(aqi, pollution, lat, lon, cityName, source = "Live") {
-// Update UI
-document.getElementById("city-name").innerText = cityName;
-document.getElementById("aqi-value").innerText = aqi;
-document.getElementById("aqi-status").innerText = getAQIStatus(aqi);
-document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
-document.getElementById("dataSource").innerText = source;
+function updateUIWithAQI(aqi, lat, lon, cityName, source = "Live") {
 
-// Save cache
-localStorage.setItem("cityName", cityName);
-localStorage.setItem("cityLat", lat);
-localStorage.setItem("cityLon", lon);
-localStorage.setItem("cityAQI", aqi);
+  const safeAQI = Number.isFinite(aqi) ? aqi : 100;
+  const safeLat = normalizeCoord(lat);
+  const safeLon = normalizeCoord(lon);
 
-// Move map
-if (!isNaN(lat) && !isNaN(lon)) {
-map.flyTo([lat, lon], 12);
+  // ================= DOM UPDATE =================
+  const cityEl = document.getElementById("city-name");
+  const aqiEl = document.getElementById("aqi-value");
+  const statusEl = document.getElementById("aqi-status");
+  const timeEl = document.getElementById("lastUpdated");
+  const sourceEl = document.getElementById("dataSource");
+
+  if (cityEl) cityEl.textContent = cityName;
+  if (aqiEl) aqiEl.textContent = safeAQI;
+  if (statusEl) statusEl.textContent = getAQIStatus(safeAQI);
+  if (timeEl) timeEl.textContent = new Date().toLocaleTimeString();
+  if (sourceEl) sourceEl.textContent = source;
+
+  // ================= STORAGE =================
+  localStorage.setItem("cityName", cityName);
+  localStorage.setItem("cityLat", safeLat);
+  localStorage.setItem("cityLon", safeLon);
+  localStorage.setItem("cityAQI", safeAQI);
+
+  // ================= MAP UPDATE (NO FLICKER) =================
+  if (map && !isNaN(safeLat) && !isNaN(safeLon)) {
+
+    map.flyTo([safeLat, safeLon], 12, { animate: true });
+
+    // update marker instead of recreating if possible
+    if (!marker) {
+      marker = L.marker([safeLat, safeLon]).addTo(map);
+    } else {
+      marker.setLatLng([safeLat, safeLon]);
+    }
+
+    marker
+      .bindPopup(`
+        <div style="text-align:center;">
+          <h3>${cityName}</h3>
+          <b>AQI ${safeAQI}</b><br><br>
+          <button onclick="openCityDashboard('${cityName}', ${safeLat}, ${safeLon})">
+            📊 Open Dashboard
+          </button>
+        </div>
+      `)
+      .openPopup();
+
+    showCityAQI(map, safeLat, safeLon, safeAQI);
+  }
+
+  // ================= UI EFFECTS =================
+  highlightLegend(safeAQI);
+  saveHistory(cityName, safeAQI);
+  renderHistory();
+  checkAQIAlert(cityName, safeAQI);
+
+  // ================= CAPITAL SYNC (SMART) =================
+  const capitalTab = document.getElementById("capitalTab");
+
+  if (capitalTab?.classList.contains("active")) {
+    // avoid spam refresh → small delay + non-blocking
+    clearTimeout(window.capitalRefreshTimer);
+
+    window.capitalRefreshTimer = setTimeout(() => {
+      loadCapitalAQI(false);
+    }, 500);
+  }
 }
 
-// Marker
-if (marker) map.removeLayer(marker);
-
-marker = L.marker([lat, lon]).addTo(map)
-  .bindPopup(`
-    <div style="text-align:center;">
-      <h3>${cityName}</h3>
-      <b>AQI ${aqi}</b><br><br>
-      <button onclick="openCityPage()">📊 Open Dashboard</button>
-    </div>
-  `)
-  .openPopup();
-
-highlightLegend(aqi);
-saveHistory(cityName, aqi);
-renderHistory();
-checkAQIAlert(cityName, aqi);
-showCityAQI(map, lat, lon, aqi);
-}
-
-
-// ================= LOAD AQI =================
 async function loadAQI(lat, lon, cityName) {
   try {
-    lat = parseFloat(lat);
-    lon = parseFloat(lon);
+    lat = normalizeCoord(lat);
+    lon = normalizeCoord(lon);
 
     if (isNaN(lat) || isNaN(lon)) {
       console.error("Invalid coordinates:", lat, lon);
       return;
     }
 
-    // DEMO MODE (for presentation)
+    const key = `${lat},${lon}`;
+
+    // ================= DEMO =================
     if (DEMO_MODE) {
-      console.log("Running in DEMO MODE");
-
       const demoAQI = Math.floor(Math.random() * 200) + 50;
-      const pollution = {};
-
-      updateUIWithAQI(demoAQI, pollution, lat, lon, cityName, "Demo Mode");
+      updateUIWithAQI(demoAQI, lat, lon, cityName, "Demo Mode");
       return;
     }
 
-    const response = await fetch(`${BASE_URL}/api/aqi?lat=${lat}&lon=${lon}`);
-    const aqiData = await response.json();
+    // ================= CACHE CHECK =================
+    let aqi = getLatestAQI(lat, lon);
 
-    // If API fails → use cached AQI
-    if (aqiData.status !== "success" || !aqiData?.data?.current?.pollution) {
-      console.warn("API failed, using cached/demo data");
-
-      const cachedAQI = localStorage.getItem("cityAQI");
-
-      if (cachedAQI) {
-        updateUIWithAQI(cachedAQI, {}, lat, lon, cityName, "Cached Data");
-      } else {
-        const demoAQI = 120;
-        updateUIWithAQI(demoAQI, {}, lat, lon, cityName, "Demo Mode");
-      }
-
-      return;
+    if (aqi === null) {
+      aqi = await getAQI(lat, lon);
     }
 
-    // Real AQI data
-    const aqi = aqiData.data.current.pollution.aqius;
-    const pollution = aqiData.data.current.pollution;
+    const safeAQI = Number.isFinite(aqi) ? aqi : 100;
 
-    updateUIWithAQI(aqi, pollution, lat, lon, cityName, "Live API");
+    // ================= UPDATE UI =================
+    updateUIWithAQI(safeAQI, lat, lon, cityName, "Live API");
+
+    // ================= WEATHER (only if needed) =================
     loadWeather(lat, lon);
-    startAutoRefresh();
+
+    // ================= AUTO REFRESH (safe guard) =================
+    if (!autoRefreshInterval) {
+      startAutoRefresh();
+    }
 
   } catch (err) {
     console.error("AQI fetch error:", err);
 
-    // Fallback demo data
-    const demoAQI = 100;
-    updateUIWithAQI(demoAQI, {}, lat, lon, cityName, "Demo Mode");
+    updateUIWithAQI(
+      100,
+      normalizeCoord(lat),
+      normalizeCoord(lon),
+      cityName,
+      "Demo Mode"
+    );
   }
 }
 
@@ -419,8 +483,7 @@ async function useMyLocation() {
 }
 
 // ================= CAPITAL AQI =================
-async function loadCapitalAQI() {
-
+async function loadCapitalAQI(forceRefresh = false) {
   const cities = [
     { name: "Delhi", lat: 28.6139, lon: 77.2090 },
     { name: "Mumbai", lat: 19.0760, lon: 72.8777 },
@@ -435,42 +498,67 @@ async function loadCapitalAQI() {
   ];
 
   const container = document.getElementById("capitalAQI");
-  
+  if (!container) return;
+
   let html = "";
 
-  for (let city of cities) {
+  for (const city of cities) {
     try {
-      const res = await fetch(`${BASE_URL}/api/aqi?lat=${city.lat}&lon=${city.lon}`);
+      const key = `${normalizeCoord(city.lat)},${normalizeCoord(city.lon)}`;
 
-      if (!res.ok) throw new Error("API Error");
+      let aqi = getLatestAQI(city.lat, city.lon);
 
-      const data = await res.json();
+      // Fetch only if needed
+      if (aqi === null || forceRefresh) {
+        aqi = await getAQI(city.lat, city.lon);
 
-      let aqi;
+        // ensure store consistency
+        liveAQIStore[key] = {
+          value: aqi,
+          time: Date.now(),
+          city: city.name
+        };
 
-if (data?.status === "success") {
-  aqi = data?.data?.current?.pollution?.aqius;
-} else {
-  // fallback demo AQI
-  aqi = Math.floor(Math.random() * 150) + 50;
-}
+        // small delay to avoid API throttling
+        await new Promise(r => setTimeout(r, 250));
+      }
+
+      const safeAQI = Number.isFinite(aqi) ? aqi : 100;
+
+      const color = getAQIColor(safeAQI);
+      const status = getAQIStatus(safeAQI);
+
       html += `
-        <div class="history-item">
-          ${city.name} - AQI ${aqi}
+        <div class="capital-card">
+          <div class="capital-left">
+            <div class="capital-name">${city.name}</div>
+            <div class="capital-status">${status}</div>
+          </div>
+
+          <div class="capital-right">
+            <div class="capital-aqi" style="color:${color}">
+              ${safeAQI}
+            </div>
+          </div>
         </div>
       `;
 
     } catch (err) {
-      console.error(`Error for ${city.name}:`, err);
+      console.error(`Error loading AQI for ${city.name}:`, err);
+
       html += `
-        <div class="history-item">
-          ${city.name} - AQI Not Available
+        <div class="capital-card error-card">
+          <div class="capital-left">
+            <div class="capital-name">${city.name}</div>
+            <div class="capital-status">Data not available</div>
+          </div>
+
+          <div class="capital-right">
+            <div class="capital-aqi">--</div>
+          </div>
         </div>
       `;
     }
-
-    // ✅ small delay to avoid rate limit
-    await new Promise(res => setTimeout(res, 1000));
   }
 
   container.innerHTML = html;
@@ -503,12 +591,28 @@ function renderHistory() {
 
   let history = JSON.parse(localStorage.getItem("aqiHistory")) || [];
 
-  container.innerHTML = history.map(h => `
-    <div class="history-item">
-      ${h.city} - AQI ${h.aqi}<br>
-      <small>${h.time}</small>
-    </div>
-  `).join("");
+  container.innerHTML = history.reverse().map(h => {
+    let color = getAQIColor(h.aqi);
+    let status = getAQIStatus(h.aqi);
+
+    return `
+      <div class="history-card">
+        <div class="history-left">
+          <div class="history-city">${h.city}</div>
+          <div class="history-time">${h.time}</div>
+        </div>
+
+        <div class="history-right">
+          <div class="history-aqi" style="color:${color}">
+            ${h.aqi}
+          </div>
+          <div class="history-status">
+            ${status}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 // ================= LEGEND =================
@@ -548,16 +652,29 @@ function openSection(sectionClass) {
 }
 
 // ================= CITY PAGE =================
-window.openCityPage = function () {
+window.openCityDashboard = function(city, lat, lon) {
+  localStorage.setItem("cityName", city);
+  localStorage.setItem("cityLat", lat);
+  localStorage.setItem("cityLon", lon);
+
   window.location.href = "city.html";
 };
 
 function showTab(tabId) {
+
   document.querySelectorAll(".tab-content").forEach(tab => {
     tab.classList.remove("active");
+    tab.style.display = "none";
   });
 
-  document.getElementById(tabId).classList.add("active");
+  const activeTab = document.getElementById(tabId);
+
+  activeTab.style.display = "block";
+  activeTab.classList.add("active");
+
+  requestAnimationFrame(() => {
+    if (map) map.invalidateSize();
+  });
 }
 
 // ================= ALERT FUNCTIONS =================
@@ -571,20 +688,22 @@ function checkAQIAlert(city, aqi) {
 
   if (!alertBox) return;
 
-  // Hide alert if AQI safe
+  // RESET FIRST (IMPORTANT FIX)
+  alertBox.classList.remove("hidden");
+
+  // If safe → hide alert
   if (aqi <= 100) {
     alertBox.classList.add("hidden");
     return;
   }
 
-  // Reset classes
+  // reset styles
   box.className = "aqi-alert-box";
 
   let level = "";
   let advice = "";
   let icon = "";
 
-  // ================= ALERT LEVELS =================
   if (aqi <= 150) {
     level = "Unhealthy for Sensitive Groups";
     advice = "Children, elderly and asthma patients should avoid outdoor activities.";
@@ -610,27 +729,21 @@ function checkAQIAlert(city, aqi) {
     box.classList.add("aqi-hazard");
   }
 
-  // ================= SET CONTENT =================
-  title.innerText = icon + " AQI Alert - " + level;
-
+  title.innerText = `${icon} AQI Alert - ${level}`;
   msg.innerHTML =
     `<b>City:</b> ${city}<br>
      <b>AQI:</b> ${aqi}<br>
      <b>Health Advice:</b> ${advice}`;
 
-  // Show alert
   alertBox.classList.remove("hidden");
 
-  // Auto close after 10 seconds
   setTimeout(() => {
     alertBox.classList.add("hidden");
   }, 10000);
 
-  // Close button
   closeBtn.onclick = () => {
     alertBox.classList.add("hidden");
   };
-
 }
 
 //================== HEATMAP FUNCTIONS =================
@@ -646,8 +759,8 @@ function getAQIColor(aqi) {
 }
 
 function showCityAQI(map, lat, lon, aqi) {
-  if (!map || !lat || !lon || !aqi) return;
-
+  if (!map || lat == null || lon == null || aqi == null) return;
+  
   // Remove old circle
   if (aqiCircle) {
     map.removeLayer(aqiCircle);
