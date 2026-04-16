@@ -1,40 +1,62 @@
-const DEMO_MODE = false; // change to true during presentation if API fails
+const DEMO_MODE = true; // change to true during presentation if API fails
 const BASE_URL = "https://breathesafe-3g5q.onrender.com"; 
 
 // ================= MAP VARIABLES =================
 let map, marker = null;
 let autoRefreshInterval = null;
-const liveAQIStore = {};
 
 //======= SHARED API===============
+const liveAQIStore = new Map();
+
 async function getAQI(lat, lon) {
   const nLat = normalizeCoord(lat);
   const nLon = normalizeCoord(lon);
   const key = `${nLat},${nLon}`;
 
-  const res = await fetch(`${BASE_URL}/api/aqi?lat=${nLat}&lon=${nLon}`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`${BASE_URL}/api/aqi?lat=${nLat}&lon=${nLon}`);
 
-  let aqi = 100;
-  if (data?.status === "success") {
-    aqi = data.data.current.pollution.aqius;
+    if (!res.ok) {
+      throw new Error(`HTTP Error: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    console.log("AQI API Response:", data);
+
+    if (
+      data?.status === "success" &&
+      data?.data?.current?.pollution?.aqius != null
+    ) {
+      const aqi = data.data.current.pollution.aqius;
+
+      // SAVE latest AQI in shared cache
+      liveAQIStore.set(key, {
+        value: aqi,
+        time: Date.now()
+      });
+
+      return aqi;
+    }
+
+    throw new Error("Invalid AQI data");
+
+  } catch (err) {
+    console.error("AQI Fetch Failed:", err);
+
+    // fallback cached AQI if available
+    return liveAQIStore.get(key)?.value ?? 100;
   }
-
-  // ✅ store latest value globally
-  liveAQIStore[key] = {
-    value: aqi,
-    time: Date.now()
-  };
-
-  return aqi;
 }
 
+//======= GET CACHED AQI ===========
 function getLatestAQI(lat, lon) {
   const key = `${normalizeCoord(lat)},${normalizeCoord(lon)}`;
-  return liveAQIStore[key]?.value ?? null;
+
+  return liveAQIStore.get(key)?.value ?? null;
 }
 
-//====== GLobal NORMALIZATION FUNCTION ========
+//====== GLOBAL NORMALIZATION FUNCTION ========
 function normalizeCoord(num) {
   return Number(Number(num).toFixed(4));
 }
@@ -205,47 +227,39 @@ function updateUIWithAQI(aqi, lat, lon, cityName, source = "Live") {
   const safeLon = normalizeCoord(lon);
 
   // ================= DOM UPDATE =================
-  const cityEl = document.getElementById("city-name");
-  const aqiEl = document.getElementById("aqi-value");
-  const statusEl = document.getElementById("aqi-status");
-  const timeEl = document.getElementById("lastUpdated");
-  const sourceEl = document.getElementById("dataSource");
+  document.getElementById("city-name").textContent = cityName;
+  document.getElementById("aqi-value").textContent = safeAQI;
+  document.getElementById("aqi-status").textContent = getAQIStatus(safeAQI);
+  document.getElementById("lastUpdated").textContent =
+    new Date().toLocaleTimeString();
+  document.getElementById("dataSource").textContent = source;
 
-  if (cityEl) cityEl.textContent = cityName;
-  if (aqiEl) aqiEl.textContent = safeAQI;
-  if (statusEl) statusEl.textContent = getAQIStatus(safeAQI);
-  if (timeEl) timeEl.textContent = new Date().toLocaleTimeString();
-  if (sourceEl) sourceEl.textContent = source;
-
-  // ================= STORAGE =================
+  // ================= LOCAL STORAGE =================
   localStorage.setItem("cityName", cityName);
   localStorage.setItem("cityLat", safeLat);
   localStorage.setItem("cityLon", safeLon);
   localStorage.setItem("cityAQI", safeAQI);
 
-  // ================= MAP UPDATE (NO FLICKER) =================
+  // ================= MAP UPDATE =================
   if (map && !isNaN(safeLat) && !isNaN(safeLon)) {
 
     map.flyTo([safeLat, safeLon], 12, { animate: true });
 
-    // update marker instead of recreating if possible
     if (!marker) {
       marker = L.marker([safeLat, safeLon]).addTo(map);
     } else {
       marker.setLatLng([safeLat, safeLon]);
     }
 
-    marker
-      .bindPopup(`
-        <div style="text-align:center;">
-          <h3>${cityName}</h3>
-          <b>AQI ${safeAQI}</b><br><br>
-          <button onclick="openCityDashboard('${cityName}', ${safeLat}, ${safeLon})">
-            📊 Open Dashboard
-          </button>
-        </div>
-      `)
-      .openPopup();
+    marker.bindPopup(`
+      <div style="text-align:center;">
+        <h3>${cityName}</h3>
+        <b>AQI ${safeAQI}</b><br><br>
+        <button onclick="openCityDashboard('${cityName}', ${safeLat}, ${safeLon})">
+          📊 Open Dashboard
+        </button>
+      </div>
+    `).openPopup();
 
     showCityAQI(map, safeLat, safeLon, safeAQI);
   }
@@ -256,11 +270,10 @@ function updateUIWithAQI(aqi, lat, lon, cityName, source = "Live") {
   renderHistory();
   checkAQIAlert(cityName, safeAQI);
 
-  // ================= CAPITAL SYNC (SMART) =================
+  // ================= REFRESH CAPITAL TAB =================
   const capitalTab = document.getElementById("capitalTab");
 
   if (capitalTab?.classList.contains("active")) {
-    // avoid spam refresh → small delay + non-blocking
     clearTimeout(window.capitalRefreshTimer);
 
     window.capitalRefreshTimer = setTimeout(() => {
@@ -269,7 +282,10 @@ function updateUIWithAQI(aqi, lat, lon, cityName, source = "Live") {
   }
 }
 
+
+// ================= LOAD AQI =================
 async function loadAQI(lat, lon, cityName) {
+
   try {
     lat = normalizeCoord(lat);
     lon = normalizeCoord(lon);
@@ -279,44 +295,59 @@ async function loadAQI(lat, lon, cityName) {
       return;
     }
 
-    const key = `${lat},${lon}`;
-
-    // ================= DEMO =================
+    // ================= DEMO MODE =================
     if (DEMO_MODE) {
       const demoAQI = Math.floor(Math.random() * 200) + 50;
-      updateUIWithAQI(demoAQI, lat, lon, cityName, "Demo Mode");
+
+      updateUIWithAQI(
+        demoAQI,
+        lat,
+        lon,
+        cityName,
+        "Demo Mode"
+      );
+
       return;
     }
 
-    // ================= CACHE CHECK =================
+    // ================= GET AQI =================
     let aqi = getLatestAQI(lat, lon);
 
     if (aqi === null) {
       aqi = await getAQI(lat, lon);
     }
 
-    const safeAQI = Number.isFinite(aqi) ? aqi : 100;
+    if (!Number.isFinite(aqi)) {
+      aqi = 100;
+    }
 
-    // ================= UPDATE UI =================
-    updateUIWithAQI(safeAQI, lat, lon, cityName, "Live API");
+    // ================= UPDATE =================
+    updateUIWithAQI(
+      aqi,
+      lat,
+      lon,
+      cityName,
+      "Live API"
+    );
 
-    // ================= WEATHER (only if needed) =================
-    loadWeather(lat, lon);
+    // ================= LOAD WEATHER =================
+    await loadWeather(lat, lon);
 
-    // ================= AUTO REFRESH (safe guard) =================
+    // ================= AUTO REFRESH =================
     if (!autoRefreshInterval) {
       startAutoRefresh();
     }
 
   } catch (err) {
-    console.error("AQI fetch error:", err);
+
+    console.error("AQI Fetch Error:", err);
 
     updateUIWithAQI(
       100,
-      normalizeCoord(lat),
-      normalizeCoord(lon),
+      lat,
+      lon,
       cityName,
-      "Demo Mode"
+      "Fallback Mode"
     );
   }
 }
@@ -484,6 +515,7 @@ async function useMyLocation() {
 
 // ================= CAPITAL AQI =================
 async function loadCapitalAQI(forceRefresh = false) {
+
   const cities = [
     { name: "Delhi", lat: 28.6139, lon: 77.2090 },
     { name: "Mumbai", lat: 19.0760, lon: 72.8777 },
@@ -498,29 +530,27 @@ async function loadCapitalAQI(forceRefresh = false) {
   ];
 
   const container = document.getElementById("capitalAQI");
+
   if (!container) return;
 
   let html = "";
 
   for (const city of cities) {
+
     try {
-      const key = `${normalizeCoord(city.lat)},${normalizeCoord(city.lon)}`;
 
-      let aqi = getLatestAQI(city.lat, city.lon);
+      let aqi;
 
-      // Fetch only if needed
-      if (aqi === null || forceRefresh) {
+      // ================= CACHE / REFRESH =================
+      if (forceRefresh) {
         aqi = await getAQI(city.lat, city.lon);
 
-        // ensure store consistency
-        liveAQIStore[key] = {
-          value: aqi,
-          time: Date.now(),
-          city: city.name
-        };
+      } else {
+        aqi = getLatestAQI(city.lat, city.lon);
 
-        // small delay to avoid API throttling
-        await new Promise(r => setTimeout(r, 250));
+        if (aqi === null) {
+          aqi = await getAQI(city.lat, city.lon);
+        }
       }
 
       const safeAQI = Number.isFinite(aqi) ? aqi : 100;
@@ -543,7 +573,11 @@ async function loadCapitalAQI(forceRefresh = false) {
         </div>
       `;
 
+      // delay avoids API spam
+      await new Promise(r => setTimeout(r, 200));
+
     } catch (err) {
+
       console.error(`Error loading AQI for ${city.name}:`, err);
 
       html += `
